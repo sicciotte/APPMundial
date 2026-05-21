@@ -14,6 +14,7 @@ let syncReady = false;
 let unsubscribers = [];
 
 const firebaseReady = isFirebaseConfigured();
+const predictionDeadline = getPredictionDeadline();
 let auth = null;
 let db = null;
 let createUserWithEmailAndPassword = null;
@@ -87,6 +88,28 @@ function formatDate(date) {
     month: "long",
     year: "numeric",
   }).format(new Date(`${date}T12:00:00`));
+}
+
+function getPredictionDeadline() {
+  const firstMatchDate = MATCHES.map((match) => match.date).sort()[0];
+  const [year, month, day] = firstMatchDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day - 1, 21, 59, 59, 999));
+}
+
+function formatDeadline() {
+  return new Intl.DateTimeFormat("es-ES", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Madrid",
+    timeZoneName: "short",
+  }).format(predictionDeadline);
+}
+
+function predictionsAreLocked() {
+  return new Date() > predictionDeadline;
 }
 
 function getOutcome(result) {
@@ -239,6 +262,12 @@ async function setPrediction(matchId, pick) {
     return;
   }
 
+  if (predictionsAreLocked()) {
+    showToast("El plazo para cambiar pronósticos ya terminó.");
+    render();
+    return;
+  }
+
   const nextPicks = { ...(state.predictions[currentUser.uid] || {}), [matchId]: pick };
   state.predictions[currentUser.uid] = nextPicks;
   render();
@@ -361,6 +390,7 @@ function renderApp() {
   const matchesByKey = groupedMatches();
   const totalPicks = Object.keys(state.predictions[currentUser.uid] || {}).length;
   const displayName = currentProfile?.name || currentUser.displayName || currentUser.email;
+  const locked = predictionsAreLocked();
 
   app.innerHTML = `
     <header class="topbar">
@@ -441,8 +471,8 @@ function renderApp() {
         </div>
 
         <div class="notice">
-          <span>Pronósticos de ${displayName}</span>
-          <span>1 local · X empate · 2 visitante</span>
+          <span>${locked ? "Pronósticos cerrados" : `Pronósticos de ${displayName}`}</span>
+          <span>${locked ? `Fecha límite: ${formatDeadline()}` : `Puedes cambiar picks hasta ${formatDeadline()}`}</span>
         </div>
 
         ${Object.entries(matchesByKey)
@@ -496,8 +526,9 @@ function renderMatchSection(key, matches) {
 
 function renderMatchCard(match) {
   const selected = state.predictions[currentUser.uid]?.[match.id] || "";
+  const locked = predictionsAreLocked();
   return `
-    <article class="match-card">
+    <article class="match-card ${locked ? "locked" : ""}">
       <div class="match-meta">
         <span>Partido ${match.number}</span>
         <span>Grupo ${match.group}</span>
@@ -512,7 +543,7 @@ function renderMatchCard(match) {
         ${["1", "X", "2"]
           .map(
             (pick) => `
-              <button class="${selected === pick ? "selected" : ""}" data-action="pick" data-match="${match.id}" data-pick="${pick}">
+              <button class="${selected === pick ? "selected" : ""}" data-action="pick" data-match="${match.id}" data-pick="${pick}" ${locked ? "disabled" : ""}>
                 ${pick}
               </button>`,
           )
@@ -684,3 +715,7 @@ if (firebaseReady) {
     renderLoading("No se pudo conectar con Firebase.");
   });
 }
+
+setInterval(() => {
+  if (currentUser) render();
+}, 60000);

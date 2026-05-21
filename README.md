@@ -24,7 +24,7 @@ export const firebaseConfig = {
 
 ## Reglas de Firestore
 
-Puedes empezar con estas reglas para que solo los usuarios con sesión vean la porra, y cada usuario solo pueda escribir sus propios pronósticos:
+Puedes empezar con estas reglas para que solo los usuarios con sesión vean la porra, y cada usuario solo pueda escribir sus propios pronósticos hasta el 10 de junio de 2026 a las 23:59, hora de Madrid:
 
 ```text
 rules_version = '2';
@@ -41,7 +41,9 @@ service cloud.firestore {
 
       match /predictions/{userId} {
         allow read: if request.auth != null;
-        allow create, update: if request.auth != null && request.auth.uid == userId;
+        allow create, update: if request.auth != null
+          && request.auth.uid == userId
+          && request.time.toMillis() <= 1781128799999;
       }
 
       match /app/results {
@@ -52,6 +54,8 @@ service cloud.firestore {
   }
 }
 ```
+
+Ese número es el equivalente en milisegundos del cierre de pronósticos en tiempo de servidor.
 
 ## Abrir la app
 

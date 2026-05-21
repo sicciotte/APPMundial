@@ -170,6 +170,12 @@ button:hover {
   filter: brightness(0.96);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.25);
+  opacity: 0.58;
+}
+
 .auth-page {
   min-height: 100vh;
   display: grid;
@@ -434,6 +440,10 @@ details p {
 .pick-row button.selected {
   background: var(--green);
   color: #fff;
+}
+
+.match-card.locked .pick-row button.selected {
+  background: #6f7d8a;
 }
 
 .predictions {
