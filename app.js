@@ -305,6 +305,31 @@ function groupedMatches() {
   }, {});
 }
 
+function compareGroupKeys(keyA, keyB) {
+  const groupOrder = Object.keys(GROUPS);
+  const indexA = groupOrder.indexOf(keyA);
+  const indexB = groupOrder.indexOf(keyB);
+
+  if (indexA !== -1 && indexB !== -1) {
+    return indexA - indexB;
+  }
+
+  if (indexA !== -1) return -1;
+  if (indexB !== -1) return 1;
+
+  return keyA.localeCompare(keyB, "es", { sensitivity: "base" });
+}
+
+function sortedMatchSections(matchesByKey) {
+  return Object.entries(matchesByKey).sort(([keyA], [keyB]) => {
+    if (viewMode === "group") {
+      return compareGroupKeys(keyA, keyB);
+    }
+
+    return keyA.localeCompare(keyB);
+  });
+}
+
 function predictionCell(user, match) {
   const pick = state.predictions[user.id]?.[match.id] || "-";
   const real = getOutcome(state.results[match.id]);
@@ -475,7 +500,7 @@ function renderApp() {
           <span>${locked ? `Fecha límite: ${formatDeadline()}` : `Puedes cambiar picks hasta ${formatDeadline()}`}</span>
         </div>
 
-        ${Object.entries(matchesByKey)
+        ${sortedMatchSections(matchesByKey)
           .map(([key, matches]) => renderMatchSection(key, matches))
           .join("")}
 
