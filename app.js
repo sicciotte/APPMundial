@@ -91,9 +91,8 @@ function formatDate(date) {
 }
 
 function getPredictionDeadline() {
-  const firstMatchDate = MATCHES.map((match) => match.date).sort()[0];
-  const [year, month, day] = firstMatchDate.split("-").map(Number);
-  return new Date(Date.UTC(year, month - 1, day - 1, 21, 59, 59, 999));
+  // Fecha límite fija: 11/06/2026 a las 21:00 hora Madrid (Europe/Madrid = UTC+2 en verano)
+  return new Date(Date.UTC(2026, 5, 11, 19, 0, 0, 0));
 }
 
 function formatDeadline() {
