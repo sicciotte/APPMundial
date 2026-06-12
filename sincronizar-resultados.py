@@ -220,15 +220,24 @@ def main():
     unmatched = 0
 
     for game in api_games:
-        # Campos posibles en la API (puede variar)
-        home_raw = game.get("homeTeam", game.get("home_team", game.get("home", {}))).get("name", "") if isinstance(game.get("homeTeam", game.get("home_team", "")), dict) else game.get("homeTeam", game.get("home_team", game.get("home", "")))
-        away_raw = game.get("awayTeam", game.get("away_team", game.get("away", {}))).get("name", "") if isinstance(game.get("awayTeam", game.get("away_team", "")), dict) else game.get("awayTeam", game.get("away_team", game.get("away", "")))
-        home_score = game.get("homeScore", game.get("home_score", game.get("score", {}).get("home", None)))
-        away_score = game.get("awayScore", game.get("away_score", game.get("score", {}).get("away", None)))
-        status = game.get("status", game.get("matchStatus", "")).lower()
+        # worldcup26.ir usa home_team_name_en / away_team_name_en
+        home_raw = game.get("home_team_name_en") or game.get("homeTeam", game.get("home_team", ""))
+        away_raw = game.get("away_team_name_en") or game.get("awayTeam", game.get("away_team", ""))
+        if isinstance(home_raw, dict): home_raw = home_raw.get("name", "")
+        if isinstance(away_raw, dict): away_raw = away_raw.get("name", "")
+
+        home_score = game.get("home_score", game.get("homeScore", game.get("score", {}).get("home") if isinstance(game.get("score"), dict) else None))
+        away_score = game.get("away_score", game.get("awayScore", game.get("score", {}).get("away") if isinstance(game.get("score"), dict) else None))
+
+        # worldcup26.ir usa "finished": "TRUE" y "time_elapsed": "finished"
+        is_finished = (
+            str(game.get("finished", "")).upper() == "TRUE"
+            or str(game.get("time_elapsed", "")).lower() == "finished"
+            or str(game.get("status", game.get("matchStatus", ""))).lower() in ("completed", "finished", "ft", "full-time", "fulltime", "ended")
+        )
 
         # Solo partidos terminados
-        if status not in ("completed", "finished", "ft", "full-time", "fulltime", "ended"):
+        if not is_finished:
             skipped += 1
             continue
 
