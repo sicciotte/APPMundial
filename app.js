@@ -1,5 +1,8 @@
 import { firebaseConfig, PORRA_ID } from "./firebase-config.js";
 
+// Emails con acceso al panel de administración
+const ADMIN_EMAILS = ["sicciotte@gmail.com"];
+
 const LOCAL_SESSION_KEY = "porra-mundial-2026-session";
 const state = { users: [], predictions: {}, results: {} };
 
@@ -91,8 +94,23 @@ function formatDate(date) {
 }
 
 function getPredictionDeadline() {
-  // Fecha límite fija: 11/06/2026 a las 21:00 hora Madrid (Europe/Madrid = UTC+2 en verano)
-  return new Date(Date.UTC(2026, 5, 11, 19, 0, 0, 0));
+  const firstMatchDate = MATCHES.map((match) => match.date).sort()[0];
+  const [year, month, day] = firstMatchDate.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day - 1, 21, 59, 59, 999));
+}
+
+function isAdmin() {
+  return currentUser && ADMIN_EMAILS.includes(currentUser.email?.toLowerCase());
+}
+
+async function saveResult(matchId, homeGoals, awayGoals) {
+  const next = { ...state.results };
+  if (homeGoals === "" && awayGoals === "") {
+    delete next[matchId];
+  } else {
+    next[matchId] = { home: String(homeGoals), away: String(awayGoals) };
+  }
+  await setDoc(appDoc("app", "results"), { results: next }, { merge: false });
 }
 
 function formatDeadline() {
@@ -479,6 +497,31 @@ function renderApp() {
               .join("")}
           </div>
         </section>
+
+        ${isAdmin() ? `
+        <section class="panel admin-panel">
+          <h2>⚙️ Admin · Resultados</h2>
+          <p class="admin-hint">Introduce el marcador final de cada partido.</p>
+          <div class="admin-matches">
+            ${MATCHES.map((match) => {
+              const res = state.results[match.id] || { home: "", away: "" };
+              const done = res.home !== "" && res.away !== "";
+              return `
+                <div class="admin-match ${done ? "done" : ""}">
+                  <span class="admin-match-label">${match.home} - ${match.away}</span>
+                  <div class="admin-match-inputs">
+                    <input class="admin-score" type="number" min="0" max="30" placeholder="L"
+                      data-match="${match.id}" data-side="home" value="${res.home}" />
+                    <span>-</span>
+                    <input class="admin-score" type="number" min="0" max="30" placeholder="V"
+                      data-match="${match.id}" data-side="away" value="${res.away}" />
+                    <button class="admin-save" data-match="${match.id}" title="Guardar">✓</button>
+                    ${done ? `<button class="admin-clear" data-match="${match.id}" title="Borrar resultado">✕</button>` : ""}
+                  </div>
+                </div>`;
+            }).join("")}
+          </div>
+        </section>` : ""}
       </aside>
 
       <section class="content">
@@ -668,6 +711,41 @@ function bindAppEvents() {
   });
   document.querySelectorAll('[data-action="pick"]').forEach((button) => {
     button.addEventListener("click", () => setPrediction(button.dataset.match, button.dataset.pick));
+  });
+
+  // Admin panel events
+  document.querySelectorAll(".admin-save").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const matchId = btn.dataset.match;
+      const row = btn.closest(".admin-match");
+      const homeInput = row.querySelector('[data-side="home"]');
+      const awayInput = row.querySelector('[data-side="away"]');
+      const h = homeInput.value.trim();
+      const a = awayInput.value.trim();
+      if (h === "" || a === "") { showToast("Introduce los dos marcadores"); return; }
+      btn.disabled = true;
+      try {
+        await saveResult(matchId, h, a);
+        showToast("✅ Resultado guardado");
+      } catch (e) {
+        showToast("Error al guardar: " + e.message);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+  });
+
+  document.querySelectorAll(".admin-clear").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      if (!confirm("¿Borrar este resultado?")) return;
+      btn.disabled = true;
+      try {
+        await saveResult(btn.dataset.match, "", "");
+        showToast("Resultado borrado");
+      } catch (e) {
+        showToast("Error: " + e.message);
+      }
+    });
   });
 }
 

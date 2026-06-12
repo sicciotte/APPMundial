@@ -604,3 +604,94 @@ td.miss {
     text-align: left;
   }
 }
+
+/* ── Admin panel ─────────────────────────────────────────────────── */
+.admin-panel {
+  border: 2px solid #f59e0b;
+}
+
+.admin-panel h2 {
+  color: #92400e;
+}
+
+.admin-hint {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin: 0 0 12px;
+}
+
+.admin-matches {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 460px;
+  overflow-y: auto;
+}
+
+.admin-match {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+}
+
+.admin-match.done {
+  background: #f0fdf4;
+  border-color: #86efac;
+}
+
+.admin-match-label {
+  font-size: 0.78rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+.admin-match-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.admin-score {
+  width: 48px;
+  text-align: center;
+  padding: 4px 6px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.admin-score:focus {
+  outline: 2px solid #f59e0b;
+  border-color: #f59e0b;
+}
+
+.admin-save {
+  padding: 4px 10px;
+  background: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.admin-save:hover { background: #15803d; }
+.admin-save:disabled { opacity: 0.5; cursor: default; }
+
+.admin-clear {
+  padding: 4px 8px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.admin-clear:hover { background: #dc2626; }
