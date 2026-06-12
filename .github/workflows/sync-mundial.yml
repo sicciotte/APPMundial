@@ -5,7 +5,7 @@ on:
     # Cada hora durante el Mundial (11 Jun - 19 Jul 2026)
     - cron: '0 * * * *'
   workflow_dispatch: 
-    # También permite ejecutarlo manualmente desde GitHub 
+    # También permite ejecutarlo manualmente desde GitHub
 
 jobs:
   sync:
