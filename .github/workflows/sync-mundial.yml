@@ -26,6 +26,21 @@ jobs:
       - name: Crear archivo Service Account
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
 
+      - name: Debug API
+        run: |
+          python - <<'EOF'
+          import requests, json
+          r = requests.get("https://worldcup26.ir/get/games")
+          data = r.json()
+          games = data if isinstance(data, list) else data.get('games', data.get('matches', data.get('data', [])))
+          statuses = set()
+          for g in games:
+              statuses.add(str(g.get('status', g.get('matchStatus', g.get('state', '?')))))
+          print("Status values encontrados:", statuses)
+          print("\nPrimer partido:")
+          print(json.dumps(games[0], ensure_ascii=False, indent=2))
+          EOF
+
       - name: Sincronizar resultados
         run: python sincronizar-resultados.py --service-account service-account.json
 
