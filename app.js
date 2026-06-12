@@ -1,7 +1,7 @@
 import { firebaseConfig, PORRA_ID } from "./firebase-config.js";
 
 // Emails con acceso al panel de administración
-const ADMIN_EMAILS = ["sicciotte@gmail.com"];
+const ADMIN_EMAILS = ["alberto@porra.local", "alberto.heavy@porra.local"];
 
 const LOCAL_SESSION_KEY = "porra-mundial-2026-session";
 const state = { users: [], predictions: {}, results: {} };
@@ -720,17 +720,22 @@ function bindAppEvents() {
       const row = btn.closest(".admin-match");
       const homeInput = row.querySelector('[data-side="home"]');
       const awayInput = row.querySelector('[data-side="away"]');
+      // Leer valores ANTES de cualquier re-render
       const h = homeInput.value.trim();
       const a = awayInput.value.trim();
       if (h === "" || a === "") { showToast("Introduce los dos marcadores"); return; }
       btn.disabled = true;
+      btn.textContent = "…";
+      // Actualizar state local inmediatamente para que onSnapshot no borre los valores
+      state.results[matchId] = { home: h, away: a };
       try {
         await saveResult(matchId, h, a);
         showToast("✅ Resultado guardado");
+        render();
       } catch (e) {
         showToast("Error al guardar: " + e.message);
-      } finally {
         btn.disabled = false;
+        btn.textContent = "✓";
       }
     });
   });
@@ -739,9 +744,11 @@ function bindAppEvents() {
     btn.addEventListener("click", async () => {
       if (!confirm("¿Borrar este resultado?")) return;
       btn.disabled = true;
+      delete state.results[btn.dataset.match];
       try {
         await saveResult(btn.dataset.match, "", "");
         showToast("Resultado borrado");
+        render();
       } catch (e) {
         showToast("Error: " + e.message);
       }
@@ -803,6 +810,9 @@ function startSync() {
       (snapshot) => {
         state.results = snapshot.exists() ? snapshot.data().results || {} : {};
         syncReady = true;
+        // No re-renderizar si el admin está usando un input en ese momento
+        const focused = document.activeElement;
+        if (focused && focused.classList.contains("admin-score")) return;
         render();
       },
       () => showToast("No se pudieron leer los resultados."),
