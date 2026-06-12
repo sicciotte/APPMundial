@@ -1,7 +1,7 @@
 import { firebaseConfig, PORRA_ID } from "./firebase-config.js";
 
 // Emails con acceso al panel de administración
-const ADMIN_EMAILS = ["alberto@porra.local", "alberto.heavy@porra.local"];
+const ADMIN_EMAILS = ["sicciotte@gmail.com"];
 
 const LOCAL_SESSION_KEY = "porra-mundial-2026-session";
 const state = { users: [], predictions: {}, results: {} };
