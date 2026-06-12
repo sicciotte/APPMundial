@@ -2,10 +2,8 @@ name: Sincronizar resultados Mundial
 
 on:
   schedule:
-    # Cada hora durante el Mundial (11 Jun - 19 Jul 2026)
     - cron: '0 * * * *'
-  workflow_dispatch: 
-    # También permite ejecutarlo manualmente desde GitHub
+  workflow_dispatch:
 
 jobs:
   sync:
@@ -26,24 +24,28 @@ jobs:
       - name: Crear archivo Service Account
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
 
-      - name: Debug API
+      - name: Debug API estructura
         run: |
-          python - <<'EOF'
+          python3 -c "
           import requests, json
-          r = requests.get("https://worldcup26.ir/get/games")
+          r = requests.get('https://worldcup26.ir/get/games')
           data = r.json()
           games = data if isinstance(data, list) else data.get('games', data.get('matches', data.get('data', [])))
-          statuses = set()
-          for g in games:
-              statuses.add(str(g.get('status', g.get('matchStatus', g.get('state', '?')))))
-          print("Status values encontrados:", statuses)
-          print("\nPrimer partido:")
-          print(json.dumps(games[0], ensure_ascii=False, indent=2))
-          EOF
+          statuses = set(str(g.get('status', g.get('matchStatus', g.get('state', '?')))) for g in games)
+          print('Status values:', statuses)
+          finished = [g for g in games if g.get('status') not in ('scheduled', 'upcoming', None)]
+          print('Partidos no scheduled:', len(finished))
+          if finished:
+              print(json.dumps(finished[0], ensure_ascii=False, indent=2))
+          else:
+              print(json.dumps(games[0], ensure_ascii=False, indent=2))
+          "
 
       - name: Sincronizar resultados
         run: python sincronizar-resultados.py --service-account service-account.json
 
       - name: Limpiar credenciales
+        if: always()
+        run: rm -f service-account.json
         if: always()
         run: rm -f service-account.json
