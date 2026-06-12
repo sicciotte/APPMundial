@@ -47,5 +47,3 @@ jobs:
       - name: Limpiar credenciales
         if: always()
         run: rm -f service-account.json
-        if: always()
-        run: rm -f service-account.json
