@@ -560,6 +560,7 @@ function renderApp() {
           <div class="section-title">
             <h2>Todos los pronósticos</h2>
             <span>${state.users.length ? "Sincronizado con Firebase" : "Sin participantes aún"}</span>
+            ${state.users.length ? `<button class="btn-export" data-action="export-excel" title="Exportar a Excel">📥 Exportar Excel</button>` : ""}
           </div>
           ${renderPredictionsTable()}
         </section>
@@ -672,11 +673,15 @@ function renderPredictionsTable() {
         <tbody>
           ${visible
             .map(
-              (match) => `
+              (match) => {
+                const res = state.results[match.id];
+                const resultStr = res ? `<span class="match-result">${res.home}-${res.away}</span>` : "";
+                return `
                 <tr>
-                  <td><strong>${teamLabel(match.home)}</strong> - ${teamLabel(match.away)}<small>Grupo ${match.group} · ${formatDate(match.date)}</small></td>
+                  <td><strong>${teamLabel(match.home)}</strong> - ${teamLabel(match.away)}${resultStr}<small>Grupo ${match.group} · ${formatDate(match.date)}</small></td>
                   ${state.users.map((user) => predictionCell(user, match)).join("")}
-                </tr>`,
+                </tr>`;
+              },
             )
             .join("")}
         </tbody>
@@ -712,6 +717,9 @@ function bindAppEvents() {
   document.querySelectorAll('[data-action="pick"]').forEach((button) => {
     button.addEventListener("click", () => setPrediction(button.dataset.match, button.dataset.pick));
   });
+
+  const exportBtn = document.querySelector('[data-action="export-excel"]');
+  if (exportBtn) exportBtn.addEventListener("click", exportToExcel);
 
   // Admin panel events
   document.querySelectorAll(".admin-save").forEach((btn) => {
@@ -754,6 +762,32 @@ function bindAppEvents() {
       }
     });
   });
+}
+
+async function exportToExcel() {
+  const btn = document.querySelector('[data-action="export-excel"]');
+  if (btn) { btn.disabled = true; btn.textContent = "Generando..."; }
+  try {
+    const XLSX = await import("https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs");
+    const header = ["Grupo", "Local", "Visitante", "Resultado", ...state.users.map((u) => u.name)];
+    const rows = [header];
+    for (const match of MATCHES) {
+      const res = state.results[match.id];
+      const resultStr = res ? `${res.home}-${res.away}` : "";
+      const row = [match.group, match.home, match.away, resultStr, ...state.users.map((u) => state.predictions[u.id]?.[match.id] || "")];
+      rows.push(row);
+    }
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    ws["!cols"] = [{ wch: 7 }, { wch: 22 }, { wch: 22 }, { wch: 9 }, ...state.users.map(() => ({ wch: 9 }))];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Pronósticos");
+    XLSX.writeFile(wb, "pronosticos-mundial-2026.xlsx");
+    showToast("✅ Excel descargado");
+  } catch (e) {
+    showToast("Error al exportar: " + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "📥 Exportar Excel"; }
+  }
 }
 
 function showToast(message) {
