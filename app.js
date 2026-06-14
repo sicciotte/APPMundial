@@ -497,31 +497,6 @@ function renderApp() {
               .join("")}
           </div>
         </section>
-
-        ${isAdmin() ? `
-        <section class="panel admin-panel">
-          <h2>⚙️ Admin · Resultados</h2>
-          <p class="admin-hint">Introduce el marcador final de cada partido.</p>
-          <div class="admin-matches">
-            ${MATCHES.map((match) => {
-              const res = state.results[match.id] || { home: "", away: "" };
-              const done = res.home !== "" && res.away !== "";
-              return `
-                <div class="admin-match ${done ? "done" : ""}">
-                  <span class="admin-match-label">${match.home} - ${match.away}</span>
-                  <div class="admin-match-inputs">
-                    <input class="admin-score" type="number" min="0" max="30" placeholder="L"
-                      data-match="${match.id}" data-side="home" value="${res.home}" />
-                    <span>-</span>
-                    <input class="admin-score" type="number" min="0" max="30" placeholder="V"
-                      data-match="${match.id}" data-side="away" value="${res.away}" />
-                    <button class="admin-save" data-match="${match.id}" title="Guardar">✓</button>
-                    ${done ? `<button class="admin-clear" data-match="${match.id}" title="Borrar resultado">✕</button>` : ""}
-                  </div>
-                </div>`;
-            }).join("")}
-          </div>
-        </section>` : ""}
       </aside>
 
       <section class="content">
@@ -663,11 +638,11 @@ function renderPredictionsTable() {
   const visible = filteredMatches();
   return `
     <div class="table-wrap">
-      <table>
+      <table class="predictions-table">
         <thead>
           <tr>
-            <th>Partido</th>
-            ${state.users.map((user) => `<th>${user.name}</th>`).join("")}
+            <th class="col-match sticky-col">Partido</th>
+            ${state.users.map((user) => `<th class="col-user">${user.name}</th>`).join("")}
           </tr>
         </thead>
         <tbody>
@@ -675,10 +650,15 @@ function renderPredictionsTable() {
             .map(
               (match) => {
                 const res = state.results[match.id];
-                const resultStr = res ? `<span class="match-result">${res.home}-${res.away}</span>` : "";
+                const resultBadge = res ? `<span class="match-result">${res.home}-${res.away}</span>` : "";
                 return `
                 <tr>
-                  <td><strong>${teamLabel(match.home)}</strong> - ${teamLabel(match.away)}${resultStr}<small>Grupo ${match.group} · ${formatDate(match.date)}</small></td>
+                  <td class="col-match sticky-col">
+                    <div class="match-cell">
+                      <div class="match-teams"><strong>${teamLabel(match.home)}</strong><span class="vs"> - </span><strong>${teamLabel(match.away)}</strong>${resultBadge}</div>
+                      <small>Grupo ${match.group} · ${formatDate(match.date)}</small>
+                    </div>
+                  </td>
                   ${state.users.map((user) => predictionCell(user, match)).join("")}
                 </tr>`;
               },
@@ -720,48 +700,6 @@ function bindAppEvents() {
 
   const exportBtn = document.querySelector('[data-action="export-excel"]');
   if (exportBtn) exportBtn.addEventListener("click", exportToExcel);
-
-  // Admin panel events
-  document.querySelectorAll(".admin-save").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      const matchId = btn.dataset.match;
-      const row = btn.closest(".admin-match");
-      const homeInput = row.querySelector('[data-side="home"]');
-      const awayInput = row.querySelector('[data-side="away"]');
-      // Leer valores ANTES de cualquier re-render
-      const h = homeInput.value.trim();
-      const a = awayInput.value.trim();
-      if (h === "" || a === "") { showToast("Introduce los dos marcadores"); return; }
-      btn.disabled = true;
-      btn.textContent = "…";
-      // Actualizar state local inmediatamente para que onSnapshot no borre los valores
-      state.results[matchId] = { home: h, away: a };
-      try {
-        await saveResult(matchId, h, a);
-        showToast("✅ Resultado guardado");
-        render();
-      } catch (e) {
-        showToast("Error al guardar: " + e.message);
-        btn.disabled = false;
-        btn.textContent = "✓";
-      }
-    });
-  });
-
-  document.querySelectorAll(".admin-clear").forEach((btn) => {
-    btn.addEventListener("click", async () => {
-      if (!confirm("¿Borrar este resultado?")) return;
-      btn.disabled = true;
-      delete state.results[btn.dataset.match];
-      try {
-        await saveResult(btn.dataset.match, "", "");
-        showToast("Resultado borrado");
-        render();
-      } catch (e) {
-        showToast("Error: " + e.message);
-      }
-    });
-  });
 }
 
 async function exportToExcel() {

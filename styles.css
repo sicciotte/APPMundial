@@ -724,3 +724,59 @@ td.miss {
 }
 .btn-export:hover { background: #15803d; }
 .btn-export:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Tabla de pronósticos: columna fija y cabecera fija ─────────── */
+.predictions-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.predictions-table .sticky-col {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  background: var(--surface, #fff);
+  min-width: 220px;
+  max-width: 260px;
+  box-shadow: 2px 0 6px rgba(0,0,0,0.08);
+}
+
+.predictions-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--surface, #fff);
+}
+
+.predictions-table thead th.sticky-col {
+  z-index: 3;
+}
+
+.predictions-table .col-user {
+  min-width: 80px;
+  text-align: center;
+}
+
+.match-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.match-teams {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  line-height: 1.3;
+}
+
+.match-teams .vs {
+  color: #9ca3af;
+  font-weight: 400;
+}
+
+.match-teams .match-result {
+  margin-left: 4px;
+  flex-shrink: 0;
+}
