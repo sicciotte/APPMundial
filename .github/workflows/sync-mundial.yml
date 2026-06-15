@@ -2,7 +2,8 @@ name: Sincronizar resultados Mundial
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    # Cada 30 minutos (más resiliente que cada hora)
+    - cron: '*/30 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -19,27 +20,10 @@ jobs:
           python-version: '3.11'
 
       - name: Instalar dependencias
-        run: pip install requests google-auth google-auth-httplib2 openpyxl pandas
+        run: pip install requests google-auth google-auth-httplib2
 
       - name: Crear archivo Service Account
         run: echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > service-account.json
-
-      - name: Debug API estructura
-        run: |
-          python3 -c "
-          import requests, json
-          r = requests.get('https://worldcup26.ir/get/games')
-          data = r.json()
-          games = data if isinstance(data, list) else data.get('games', data.get('matches', data.get('data', [])))
-          statuses = set(str(g.get('status', g.get('matchStatus', g.get('state', '?')))) for g in games)
-          print('Status values:', statuses)
-          finished = [g for g in games if g.get('status') not in ('scheduled', 'upcoming', None)]
-          print('Partidos no scheduled:', len(finished))
-          if finished:
-              print(json.dumps(finished[0], ensure_ascii=False, indent=2))
-          else:
-              print(json.dumps(games[0], ensure_ascii=False, indent=2))
-          "
 
       - name: Sincronizar resultados
         run: python sincronizar-resultados.py --service-account service-account.json
@@ -47,3 +31,12 @@ jobs:
       - name: Limpiar credenciales
         if: always()
         run: rm -f service-account.json
+
+      - name: Mantener repo activo (evita que GitHub desactive el workflow)
+        run: |
+          git config user.email "action@github.com"
+          git config user.name "GitHub Action"
+          echo "$(date -u)" > .last-sync
+          git add .last-sync
+          git diff --staged --quiet || git commit -m "sync: $(date -u '+%Y-%m-%d %H:%M') UTC"
+          git push || true
