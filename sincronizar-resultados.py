@@ -130,16 +130,23 @@ def get_token(sa_path):
     return creds.token
 
 def fetch_api_results():
-    r = requests.get(API_URL, timeout=15)
-    r.raise_for_status()
-    data = r.json()
-    # La API puede devolver lista o dict con clave 'games'/'matches'/'data'
-    if isinstance(data, list):
-        return data
-    for key in ("games", "matches", "data", "results"):
-        if key in data:
-            return data[key]
-    return []
+    for intento in range(3):
+        try:
+            r = requests.get(API_URL, timeout=30)
+            r.raise_for_status()
+            data = r.json()
+            if isinstance(data, list):
+                return data
+            for key in ("games", "matches", "data", "results"):
+                if key in data:
+                    return data[key]
+            return []
+        except Exception as e:
+            if intento < 2:
+                print(f"  Intento {intento+1} fallido, reintentando...")
+                import time; time.sleep(5)
+            else:
+                raise
 
 def canonical_team(name):
     return TEAM_MAP.get(name, name)
