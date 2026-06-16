@@ -464,8 +464,11 @@ function renderApp() {
         </section>
 
         <section class="panel">
-          <h2>Clasificación</h2>
-          <ol class="ranking">
+          <div class="section-title">
+            <h2>Clasificación</h2>
+            ${board.length ? `<button class="btn-share" data-action="share-ranking">📤 Compartir</button>` : ""}
+          </div>
+          <ol class="ranking" id="ranking-list">
             ${
               board.length
                 ? board
@@ -700,6 +703,9 @@ function bindAppEvents() {
 
   const exportBtn = document.querySelector('[data-action="export-excel"]');
   if (exportBtn) exportBtn.addEventListener("click", exportToExcel);
+
+  const shareBtn = document.querySelector('[data-action="share-ranking"]');
+  if (shareBtn) shareBtn.addEventListener("click", shareRanking);
 }
 
 async function exportToExcel() {
@@ -725,6 +731,71 @@ async function exportToExcel() {
     showToast("Error al exportar: " + e.message);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = "📥 Exportar Excel"; }
+  }
+}
+
+async function shareRanking() {
+  const btn = document.querySelector('[data-action="share-ranking"]');
+  if (btn) { btn.disabled = true; btn.textContent = "Generando..."; }
+
+  try {
+    // Load html2canvas dynamically
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    await new Promise((res, rej) => { script.onload = res; script.onerror = rej; document.head.appendChild(script); });
+
+    // Build a clean off-screen card to capture
+    const board = ranking();
+    const card = document.createElement("div");
+    card.style.cssText = `
+      position:fixed; left:-9999px; top:0;
+      width:360px; background:#0a1628; border-radius:16px;
+      padding:24px; font-family:system-ui,sans-serif; color:#fff;
+    `;
+    card.innerHTML = `
+      <div style="text-align:center;margin-bottom:16px;">
+        <div style="font-size:28px;margin-bottom:4px;">🏆</div>
+        <div style="font-size:18px;font-weight:800;color:#f59e0b;letter-spacing:1px;">PORRA MUNDIAL 2026</div>
+        <div style="font-size:12px;color:#94a3b8;margin-top:2px;">Clasificación · ${new Date().toLocaleDateString("es-ES",{day:"numeric",month:"long"})}</div>
+      </div>
+      <ol style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;">
+        ${board.map((u, i) => {
+          const medal = ["🥇","🥈","🥉"][i] || `${i+1}.`;
+          const bg = i === 0 ? "#78350f" : i === 1 ? "#374151" : i === 2 ? "#3b1a07" : "#1e3a5f";
+          return `<li style="display:flex;align-items:center;gap:10px;background:${bg};border-radius:10px;padding:10px 14px;">
+            <span style="font-size:18px;width:28px;text-align:center;">${medal}</span>
+            <span style="flex:1;font-weight:600;font-size:14px;">${u.name}</span>
+            <strong style="font-size:20px;color:#f59e0b;">${u.points}</strong>
+            <span style="font-size:11px;color:#94a3b8;">pts</span>
+          </li>`;
+        }).join("")}
+      </ol>
+      <div style="text-align:center;margin-top:16px;font-size:10px;color:#475569;">porra-mundial-2026.web.app</div>
+    `;
+    document.body.appendChild(card);
+
+    const canvas = await html2canvas(card, { backgroundColor: null, scale: 2 });
+    document.body.removeChild(card);
+
+    // Convert to blob and share
+    canvas.toBlob(async (blob) => {
+      const file = new File([blob], "clasificacion-mundial.png", { type: "image/png" });
+      if (navigator.share && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: "Porra Mundial 2026", text: "¡Mira la clasificación! 🏆" });
+      } else {
+        // Fallback: download the image
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = "clasificacion-mundial.png"; a.click();
+        URL.revokeObjectURL(url);
+        showToast("Imagen descargada — compártela desde tu galería");
+      }
+    }, "image/png");
+
+  } catch (e) {
+    showToast("Error al generar imagen: " + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = "📤 Compartir"; }
   }
 }
 

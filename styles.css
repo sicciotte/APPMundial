@@ -780,3 +780,18 @@ td.miss {
   margin-left: 4px;
   flex-shrink: 0;
 }
+
+/* ── Botón compartir clasificación ──────────────────────────────── */
+.btn-share {
+  padding: 6px 14px;
+  background: #7c3aed;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.btn-share:hover { background: #6d28d9; }
+.btn-share:disabled { opacity: 0.6; cursor: default; }
