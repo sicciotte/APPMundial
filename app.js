@@ -466,7 +466,7 @@ function renderApp() {
         <section class="panel">
           <div class="section-title">
             <h2>Clasificación</h2>
-            ${board.length ? `<button class="btn-share" data-action="share-ranking">📤 Compartir</button>` : ""}
+            <button class="btn-share" data-action="share-ranking">📤 Compartir</button>
           </div>
           <ol class="ranking" id="ranking-list">
             ${
